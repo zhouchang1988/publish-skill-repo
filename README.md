@@ -14,7 +14,17 @@
 
 1. **ClawHub Token**
 
-   在 ClawHub 上生成 Token，并保存到本机：
+   在 ClawHub 上生成 Token 的步骤：
+
+   1. 打开 https://clawhub.ai/
+   2. 点击右上角 **"Login with GitHub"**，使用 GitHub 账号授权登录
+   3. 登录成功后，点击右上角**用户名**，选择 **Settings**
+   4. 在设置页面找到 **API tokens** 区域，点击 **"Create token"**
+   5. 复制生成的 Token（格式类似：`clh_iVnxxxxxxxx...`）
+
+   ⚠️ **注意**：Token 生成后立即保存，关闭页面后将无法再次查看！
+
+   然后将 Token 保存到本机：
 
    ```bash
    mkdir -p ~/.clawhub
