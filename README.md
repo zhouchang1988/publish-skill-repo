@@ -29,6 +29,7 @@
    ```bash
    mkdir -p ~/.clawhub
    echo "your-clawhub-token" > ~/.clawhub/secret_token
+   chmod 600 ~/.clawhub/secret_token
    ```
 
 2. **GitHub CLI**
