@@ -1,8 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ============================================================================
+# Publish Skill Repo - 将 Skill 项目发布到 GitHub 并同步到 ClawHub
+# ============================================================================
+#
+# 运行前请确保已完成以下准备工作：
+#
+# 1. 获取 ClawHub Token 并保存到本地：
+#    - 访问 https://clawhub.ai/ → Login with GitHub → Settings → API tokens → Create token
+#    - 保存 Token：
+#      mkdir -p ~/.clawhub
+#      echo "your-clawhub-token" > ~/.clawhub/secret_token
+#      chmod 600 ~/.clawhub/secret_token
+#
+# 2. 安装并登录 GitHub CLI：
+#    - macOS: brew install gh
+#    - 登录: gh auth login
+#
 # 用法:
 #   ./publish-skill-repo.sh /path/to/your-skill [github-owner] [public|private]
+# ============================================================================
 
 SKILL_DIR="${1:-}"
 OWNER="${2:-$(gh api user --jq .login)}"

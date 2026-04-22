@@ -10,7 +10,7 @@
 - 配置 ClawHub Token 到仓库 Secrets
 - 推送代码到 GitHub
 
-## 前提条件
+## 准备工作
 
 1. **ClawHub Token**
 
