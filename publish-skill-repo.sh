@@ -63,10 +63,12 @@ gh auth status >/dev/null
 echo "==> 进入目录: $SKILL_DIR"
 cd "$SKILL_DIR"
 
+NEW_REPO=false
 if [[ ! -d .git ]]; then
   echo "==> 初始化 git"
   git init
   git branch -M main
+  NEW_REPO=true
 fi
 
 if [[ ! -f LICENSE ]]; then
@@ -194,9 +196,19 @@ fi
 echo "==> 推送 main"
 git push -u origin main
 
-echo ""
-echo "完成:"
-echo "  仓库: https://github.com/$REPO_FULL"
-echo "  之后发布版本:"
-echo "    git tag v1.0.0"
-echo "    git push origin v1.0.0"
+if [[ "$NEW_REPO" == "true" ]]; then
+  echo "==> 新仓库，创建 v1.0.0 tag"
+  git tag v1.0.0
+  git push origin v1.0.0
+  echo ""
+  echo "完成:"
+  echo "  仓库: https://github.com/$REPO_FULL"
+  echo "  已发布 v1.0.0 到 ClawHub"
+else
+  echo ""
+  echo "完成:"
+  echo "  仓库: https://github.com/$REPO_FULL"
+  echo "  如需发布新版本:"
+  echo "    git tag v1.x.x"
+  echo "    git push origin v1.x.x"
+fi
