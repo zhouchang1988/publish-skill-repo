@@ -19,7 +19,9 @@ set -euo pipefail
 #    - 登录: gh auth login
 #
 # 用法:
-#   ./publish-skill-repo.sh /path/to/your-skill [github-owner] [public|private]
+#   ./scripts/publish-skill-repo.sh /path/to/your-skill [github-owner] [public|private]
+#
+# 也可通过 SKILL.md 作为 Claude Code 技能使用，交互式引导发布流程。
 # ============================================================================
 
 SKILL_DIR="${1:-}"
