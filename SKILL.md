@@ -20,7 +20,7 @@ triggers:
 
 1. **当前目录包含 `SKILL.md`** — 如果没有，提示用户这不是一个 skill 项目
 2. **gh CLI 已安装且已登录** — 运行 `gh auth status` 验证
-3. **ClawHub Token 已配置** — 检查 `~/.clawhub/token` 文件是否存在（如果仓库已有 CLAWHUB_TOKEN secret 则不需要）
+3. **ClawHub Token 已配置** — 检查 `~/.clawhub/secret_token` 文件是否存在（如果仓库已有 CLAWHUB_TOKEN secret 则不需要）
 
 如果前置条件不满足，给出具体提示并停止。
 
