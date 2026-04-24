@@ -42,18 +42,6 @@ if [[ ! -f "$SKILL_DIR/SKILL.md" ]]; then
   exit 1
 fi
 
-if [[ ! -f "$TOKEN_FILE" ]]; then
-  echo "未找到 token 文件: $TOKEN_FILE"
-  exit 1
-fi
-
-CLAWHUB_TOKEN="$(tr -d '\r\n' < "$TOKEN_FILE")"
-
-if [[ -z "$CLAWHUB_TOKEN" ]]; then
-  echo "token 文件为空: $TOKEN_FILE"
-  exit 1
-fi
-
 REPO_NAME="$(basename "$SKILL_DIR")"
 REPO_FULL="$OWNER/$REPO_NAME"
 
@@ -99,10 +87,11 @@ SOFTWARE.
 EOF
 fi
 
-echo "==> 创建 workflow"
-mkdir -p .github/workflows
+if [[ ! -f .github/workflows/publish-to-clawhub.yml ]]; then
+  echo "==> 创建 workflow"
+  mkdir -p .github/workflows
 
-cat > .github/workflows/publish-to-clawhub.yml <<'YAML'
+  cat > .github/workflows/publish-to-clawhub.yml <<'YAML'
 name: Publish Skill to ClawHub
 
 on:
@@ -169,32 +158,82 @@ jobs:
           echo "Published version: ${{ steps.meta.outputs.version }}"
           echo "Source tag: ${{ steps.meta.outputs.tag }}"
 YAML
+else
+  echo "==> workflow 已存在，跳过"
+fi
+
+# 从 SKILL.md 提取 description
+SKILL_DESC=""
+if [[ -f SKILL.md ]]; then
+  SKILL_DESC="$(sed -n '/^---$/,/^---$/p' SKILL.md | sed -n 's/^description: *//p' | head -1)"
+fi
 
 if gh repo view "$REPO_FULL" >/dev/null 2>&1; then
   echo "==> GitHub 仓库已存在: $REPO_FULL"
 else
   echo "==> 创建 GitHub 仓库: $REPO_FULL"
-  gh repo create "$REPO_FULL" --"$VISIBILITY" --source=. --remote=origin --push=false
+  gh repo create "$REPO_FULL" --"$VISIBILITY" --source=. --remote=origin --push=false --description "${SKILL_DESC:-}"
 fi
 
-echo "==> 设置仓库 Secret"
-gh secret set CLAWHUB_TOKEN --repo "$REPO_FULL" --body "$CLAWHUB_TOKEN"
+# 设置仓库 About（仅当仓库无 description 时）
+CURRENT_DESC="$(gh repo view "$REPO_FULL" --json description --jq '.description // ""')"
+if [[ -z "$CURRENT_DESC" && -n "$SKILL_DESC" ]]; then
+  echo "==> 设置仓库 About"
+  gh repo edit "$REPO_FULL" --description "$SKILL_DESC"
+fi
+
+echo "==> 检查仓库 Secret"
+if gh secret list --repo "$REPO_FULL" 2>/dev/null | grep -q "^CLAWHUB_TOKEN"; then
+  echo "    CLAWHUB_TOKEN 已存在，跳过"
+else
+  if [[ ! -f "$TOKEN_FILE" ]]; then
+    echo "未找到 token 文件: $TOKEN_FILE"
+    exit 1
+  fi
+
+  CLAWHUB_TOKEN="$(tr -d '\r\n' < "$TOKEN_FILE")"
+
+  if [[ -z "$CLAWHUB_TOKEN" ]]; then
+    echo "token 文件为空: $TOKEN_FILE"
+    exit 1
+  fi
+
+  echo "    设置 CLAWHUB_TOKEN"
+  gh secret set CLAWHUB_TOKEN --repo "$REPO_FULL" --body "$CLAWHUB_TOKEN"
+fi
 
 if ! git remote get-url origin >/dev/null 2>&1; then
   echo "==> 添加远程 origin"
   git remote add origin "https://github.com/$REPO_FULL.git"
 fi
 
+HAS_NEW_COMMITS=false
 echo "==> 提交代码"
 git add .
 if git diff --cached --quiet; then
   echo "没有新的变更可提交"
 else
-  git commit -m "chore: init skill repo"
+  HAS_NEW_COMMITS=true
+  if [[ "$NEW_REPO" == "true" ]]; then
+    git commit -m "chore: init skill repo"
+  else
+    STAGED_FILES="$(git diff --cached --name-only)"
+    COMMIT_PARTS=""
+    echo "$STAGED_FILES" | grep -q '^LICENSE$'         && COMMIT_PARTS="$COMMIT_PARTS, add license"
+    echo "$STAGED_FILES" | grep -q '^\.github/workflows/' && COMMIT_PARTS="$COMMIT_PARTS, add publish workflow"
+    OTHER="$(echo "$STAGED_FILES" | grep -v '^LICENSE$' | grep -v '^\.github/workflows/')"
+    [[ -n "$OTHER" ]] && COMMIT_PARTS="$COMMIT_PARTS, update skill files"
+    git commit -m "chore: ${COMMIT_PARTS#, }"
+  fi
 fi
 
-echo "==> 推送 main"
-git push -u origin main
+LOCAL_AHEAD="$(git log origin/main..main --oneline 2>/dev/null | wc -l | tr -d ' ')"
+if [[ "$HAS_NEW_COMMITS" == "true" || "${LOCAL_AHEAD:-0}" -gt 0 ]]; then
+  echo "==> 推送 main"
+  git push -u origin main
+else
+  echo "==> 本地无新提交，跳过推送"
+fi
 
 if [[ "$NEW_REPO" == "true" ]]; then
   echo "==> 新仓库，创建 v1.0.0 tag"
