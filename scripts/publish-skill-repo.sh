@@ -47,6 +47,13 @@ fi
 REPO_NAME="$(basename "$SKILL_DIR")"
 REPO_FULL="$OWNER/$REPO_NAME"
 
+detect_main_branch() {
+  local branch
+  branch="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')" && echo "$branch" && return
+  branch="$(git config --get init.defaultBranch)" && echo "$branch" && return
+  echo "main"
+}
+
 echo "==> 检查 gh 登录状态"
 gh auth status >/dev/null
 
@@ -54,11 +61,14 @@ echo "==> 进入目录: $SKILL_DIR"
 cd "$SKILL_DIR"
 
 NEW_REPO=false
+MAIN_BRANCH="main"
 if [[ ! -d .git ]]; then
   echo "==> 初始化 git"
-  git init
-  git branch -M main
+  MAIN_BRANCH="$(git config --get init.defaultBranch 2>/dev/null || echo main)"
+  git init -b "$MAIN_BRANCH"
   NEW_REPO=true
+else
+  MAIN_BRANCH="$(detect_main_branch)"
 fi
 
 if [[ ! -f LICENSE ]]; then
@@ -229,10 +239,20 @@ else
   fi
 fi
 
-LOCAL_AHEAD="$(git log origin/main..main --oneline 2>/dev/null | wc -l | tr -d ' ')"
+LOCAL_AHEAD="$(git log "origin/$MAIN_BRANCH".."$MAIN_BRANCH" --oneline 2>/dev/null | wc -l | tr -d ' ')"
 if [[ "$HAS_NEW_COMMITS" == "true" || "${LOCAL_AHEAD:-0}" -gt 0 ]]; then
-  echo "==> 推送 main"
-  git push -u origin main
+  CURRENT_BRANCH="$(git branch --show-current)"
+  if [[ "$CURRENT_BRANCH" != "$MAIN_BRANCH" ]]; then
+    echo "==> 当前在 $CURRENT_BRANCH 分支，合并到 $MAIN_BRANCH"
+    git checkout "$MAIN_BRANCH"
+    git merge "$CURRENT_BRANCH"
+    echo "==> 推送 $MAIN_BRANCH"
+    git push -u origin "$MAIN_BRANCH"
+    git checkout "$CURRENT_BRANCH"
+  else
+    echo "==> 推送 $MAIN_BRANCH"
+    git push -u origin "$MAIN_BRANCH"
+  fi
 else
   echo "==> 本地无新提交，跳过推送"
 fi

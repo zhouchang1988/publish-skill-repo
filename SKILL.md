@@ -98,9 +98,10 @@ git diff --stat
 确认完成后，执行以下操作：
 
 1. 如果有未提交的变更，用用户确认的 commit message 提交
-2. 推送到远程 main 分支
-3. 创建用户确认的 tag 并推送到远程
-4. 向用户汇报完成结果
+2. 如果当前不在主分支，合并当前分支到主分支（主分支通过 `git symbolic-ref refs/remotes/origin/HEAD` 自动检测，兼容 main 和 master）
+3. 推送到远程主分支
+4. 创建用户确认的 tag 并推送到远程
+5. 向用户汇报完成结果
 
 如果是已有仓库但缺少 LICENSE、workflow 或 secret，运行 `scripts/publish-skill-repo.sh <当前目录>` 补齐这些文件，然后再执行发布。
 
